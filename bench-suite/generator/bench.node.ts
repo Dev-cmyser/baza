@@ -393,8 +393,53 @@ namespace $ {
 
 		}
 
+		/**
+		 * Отдельно цена чтения атома. Нужна потому, что `val( next )` в конце
+		 * возвращает `val_of( peer )`, то есть каждая запись включает чтение —
+		 * как `add()` включал `has()`. Если чтение растёт с историей, то и
+		 * «запись» будет выглядеть квадратичной, хотя дорога именно read-часть.
+		 *
+		 * Сначала набиваем ленд N записями (не меряем), затем меряем 1000 чтений.
+		 */
+		static async run_atom_read() {
+
+			const count = Math.max( 1, Math.round( this.rate() * this.duration() ) )
+			const reads = 1000
+
+			this.print_pair( 'Role', 'atom_read' )
+			this.print_pair( 'Записей', count )
+
+			await this.auth_setup()
+
+			const ctx = this.isolate()
+			const pawn = ctx.$giper_baza_glob.home().cast( $giper_baza_atom_real )
+
+			for( let i = 1; i <= count; ++i ) pawn.val( i )
+
+			const start = Date.now()
+			for( let i = 0; i < reads; ++i ) pawn.val()
+			const dur = Date.now() - start
+
+			this.print_pair( 'Чтений', reads )
+			this.print_pair( 'Всего', dur + ' мс' )
+			this.print_pair( 'На чтение', ( dur / reads ).toFixed( 4 ) + ' мс' )
+
+			// Сколько юнитов осело в ленде: у перезаписываемого значения их
+			// должно оставаться считанное число. Если растёт с числом записей —
+			// вот и причина дорожающей записи.
+			try {
+				this.print_pair( 'Юнитов в ленде', pawn.land().total() )
+			} catch( error ) {
+				this.print_pair( 'Юнитов в ленде', 'не удалось получить' )
+			}
+
+			process.exit()
+
+		}
+
 		static async run() {
 
+			if( this.role() as string === 'atom_read' ) return this.run_atom_read()
 			if( this.role() as string === 'verify' ) return this.run_verify()
 			if( this.role() as string === 'list' ) return this.run_list()
 			if( this.role() as string === 'local' ) return this.run_local()
