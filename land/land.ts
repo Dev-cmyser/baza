@@ -28,6 +28,12 @@ namespace $ {
 		tine: new $giper_baza_link( 'AQAAAAAA' ), // 1
 	}
 	
+	export type $giper_baza_land_order_node = {
+		sand: $giper_baza_unit_sand | null
+		prev: $giper_baza_land_order_node | null
+		next: $giper_baza_land_order_node | null
+	}
+
 	/** Standalone part of Glob which syncs separately, have own rights, and contains Units */
 	export class $giper_baza_land extends $mol_object {
 		
@@ -52,7 +58,58 @@ namespace $ {
 		_seal_shot = new $mol_wire_dict< string /*Shot*/, $giper_baza_unit_seal >()
 		_gift = new $mol_wire_dict< string /*Lord*/, $giper_baza_unit_gift >()
 		_sand = new $mol_wire_dict< string /*Head*/, $mol_wire_dict< string /*Lord*/, $mol_wire_dict< string /*Self*/, $giper_baza_unit_sand > > >()
-		
+
+		_rev = 0
+		_pulse = new $mol_wire_dict< string, number >()
+
+		/** Узкое оповещение о притоке юнитов — вместо подписки на словари целиком. */
+		pulse( key = 'rev' ) {
+			this._pulse.set( key, ++ this._rev )
+		}
+
+		_sand_total = 0
+
+		/** Журнал прихода юнитов по Пирам: хвост новее faces берётся без обхода ленда. */
+		_log = new Map< string /*Peer*/, ( $giper_baza_unit_seal | $giper_baza_unit_gift | $giper_baza_unit_sand )[] >()
+		_log_dirty = new Set< string >()
+
+		_fresh_encoding = [] as $giper_baza_unit_sand[]
+		_fresh_signing = [] as $giper_baza_unit_base[]
+		_fresh_saving = [] as $giper_baza_unit[]
+
+		/** Журнал прихода Sand по Головам — для инкрементального порядка пешки. */
+		_head_log = new Map< string /*Head*/, $giper_baza_unit_sand[] >()
+
+		/** Счётчик удалений без замены — после них порядок Головы требует пересбора. */
+		_head_purge = new Map< string /*Head*/, number >()
+
+		unit_income( unit: $giper_baza_unit_seal | $giper_baza_unit_gift | $giper_baza_unit_sand, peer: string ) {
+
+			let log = this._log.get( peer )
+			if( !log ) this._log.set( peer, log = [] )
+
+			const last = log[ log.length - 1 ]
+			if( last && last.time_tick() > unit.time_tick() ) this._log_dirty.add( peer )
+			log.push( unit )
+
+			// журнал хранит и вытесненные юниты — ужимаем, когда мёртвых больше живых
+			const live = this.faces.get( peer )?.summ ?? 0
+			if( log.length > 2 * live + 16 ) {
+				this._log.set( peer, log.filter( unit => this.unit_current( unit ) ) )
+			}
+
+			this._fresh_saving.push( unit )
+			this.pulse()
+		}
+
+		/** Юнит всё ещё лежит в ленде, а не вытеснен или удалён. */
+		unit_current( unit: $giper_baza_unit_base ) {
+			if( unit instanceof $giper_baza_unit_sand ) return this.sand_get( unit.head(), unit.lord(), unit.self() ) === unit
+			if( unit instanceof $giper_baza_unit_gift ) return this._gift.get( unit.mate().str ) === unit
+			if( unit instanceof $giper_baza_unit_seal ) return this._seal_shot.get( unit.shot().str ) === unit && !!unit.alive_items.size
+			return false
+		}
+
 		pass_add( pass: $giper_baza_auth_pass ) {
 			if( this._pass.has( pass.lord().str ) ) return
 			this._pass.set( pass.lord().str, pass )
@@ -83,7 +140,9 @@ namespace $ {
 			
 			this._seal_shot.set( seal.shot().str, seal )
 			this.faces.peer_summ_shift( peer.str, +1 )
-			
+
+			this.unit_income( seal, peer.str )
+
 		}
 		
 		gift_add( gift: $giper_baza_unit_gift ) {
@@ -100,9 +159,12 @@ namespace $ {
 			
 			this._gift.set( mate.str, gift )
 			this.faces.peer_time( peer.str, gift.time(), gift.tick() )
-			
+
 			this.unit_seal_inc( gift )
-			
+
+			this.unit_income( gift, peer.str )
+			this._fresh_signing.push( gift )
+
 			if( ( prev?.rank() ?? $giper_baza_rank_deny ) > gift.rank() ) this.rank_audit()
 			
 		}
@@ -120,15 +182,27 @@ namespace $ {
 			
 			const peer = sand.lord().peer()
 			
-			if( prev ) this.sand_del( prev )
+			if( prev ) this.sand_del( prev, true )
 			this.faces.peer_summ_shift( peer.str, +1 )
-		
+
 			sands.set( sand.self().str, sand )
-			
+
 			this.faces.peer_time( peer.str, sand.time(), sand.tick() )
-			
+
 			if( sand.encoded() ) this.unit_seal_inc( sand )
-			
+
+			this._sand_total += 1
+
+			let head_log = this._head_log.get( sand.head().str )
+			if( !head_log ) this._head_log.set( sand.head().str, head_log = [] )
+			head_log.push( sand )
+
+			this.pulse( 'head|' + sand.head().str )
+
+			this.unit_income( sand, peer.str )
+			this._fresh_signing.push( sand )
+			this._fresh_encoding.push( sand )
+
 		}
 		
 		units_reaping = new Set< $giper_baza_unit_base >()
@@ -173,7 +247,8 @@ namespace $ {
 			}
 			
 			this.unit_reap( seal )
-			
+			this.pulse()
+
 		}
 		
 		gift_del( gift: $giper_baza_unit_gift ) {
@@ -186,10 +261,11 @@ namespace $ {
 			
 			this.unit_reap( gift )
 			this.unit_seal_dec( gift )
-			
+			this.pulse()
+
 		}
 		
-		sand_del( sand: $giper_baza_unit_sand ) {
+		sand_del( sand: $giper_baza_unit_sand, replaced = false ) {
 			
 			const peers = this._sand.get( sand.head().str )
 			if( !peers ) return
@@ -205,7 +281,14 @@ namespace $ {
 			
 			this.unit_reap( sand )
 			if( sand.encoded() ) this.unit_seal_dec( sand )
-			
+
+			this._sand_total -= 1
+
+			if( !replaced ) this._head_purge.set( sand.head().str, ( this._head_purge.get( sand.head().str ) ?? 0 ) + 1 )
+			this.pulse( 'head|' + sand.head().str )
+
+			this.pulse()
+
 		}
 		
 		@ $mol_mem_key
@@ -355,16 +438,8 @@ namespace $ {
 		/** Total count of Units inside Land. */
 		@ $mol_mem
 		total() {
-			
-			let total = this._gift.size + this._seal_item.size
-			
-			for( const peers of this._sand.values() ) {
-				for( const units of peers.values() ) {
-					total += units.size
-				}
-			}
-			
-			return total
+			this._pulse.get( 'rev' )
+			return this._gift.size + this._seal_item.size + this._sand_total
 		}
 		
 		@ $mol_mem
@@ -415,59 +490,49 @@ namespace $ {
 		
 		/** Picks units between Face and current state. */
 		diff_units( skip_faces = new $giper_baza_face_map ): $giper_baza_unit[] {
-			
+
 			this.units_signing()
-			
-			const skipped = new Map< string, Set< $giper_baza_unit_base > >()
+			this._pulse.get( 'rev' )
+
 			const delta = new Set< $giper_baza_unit_base >()
 			const passes = new Set< $giper_baza_auth_pass >()
-			
-			function collect( unit: $giper_baza_unit_base ) {
-				
-				const peer = unit.lord().peer().str
-				const face_limit = skip_faces.get( peer )?.time_tick ?? 0
-				
-				if( unit.time_tick() > face_limit ) return delta.add( unit )
+			const fresh_summ = new Map< string, number >()
 
-				const skipped_units = skipped.get( peer )
-				
-				if( skipped_units ) skipped_units.add( unit )
-				else skipped.set( peer, new Set([ unit ]) )
-			
-			}
-			
-			
-			for( const seal of this._seal_item.values() ) {
-				if( !seal.alive_items.size ) continue
-				collect( seal )
-			}
-			
 			for( const gift of this._gift.values() ) {
-				collect( gift )
-				if( gift.mate().str ) {
-					if( skip_faces.has( gift.lord().peer().str ) ) continue
-					const mate_pass = this.lord_pass( gift.mate() )
-					if( mate_pass ) passes.add( mate_pass )
-				}
+				if( !gift.mate().str ) continue
+				if( skip_faces.has( gift.lord().peer().str ) ) continue
+				const mate_pass = this.lord_pass( gift.mate() )
+				if( mate_pass ) passes.add( mate_pass )
 			}
-			
-			for( const kids of this._sand.values() ) {
-				for( const peers of kids.values() ) {
-					for( const sand of peers.values() ) {
-						this.sand_load( sand )
-						collect( sand )
-					}
+
+			for( const [ peer, log ] of this._log ) {
+
+				if( this._log_dirty.delete( peer ) ) log.sort( ( left, right )=> left.time_tick() - right.time_tick() )
+
+				const face_limit = skip_faces.get( peer )?.time_tick ?? 0
+
+				// хвост журнала новее известного face
+				let from = log.length
+				while( from > 0 && log[ from - 1 ].time_tick() > face_limit ) --from
+
+				let count = 0
+				for( let at = from; at < log.length; ++at ) {
+					const unit = log[ at ]
+					if( !this.unit_current( unit ) ) continue
+					if( unit instanceof $giper_baza_unit_sand ) this.sand_load( unit )
+					delta.add( unit )
+					++ count
 				}
+				fresh_summ.set( peer, count )
+
 			}
-			
+
 			// detect Unit absence and then restore all for Peer
 			for( const [ peer, face ] of skip_faces ) {
-				
-				const skipped_units = skipped.get( peer )
-				
-				const skip_mass = skipped_units?.size ?? 0
+
+				const skip_mass = ( this.faces.get( peer )?.summ ?? 0 ) - ( fresh_summ.get( peer ) ?? 0 )
 				if( skip_mass <= face.summ ) continue
-				
+
 				$mol_wire_sync( this.$ ).$mol_log3_warn({
 					place: this,
 					message: 'Fail Summ',
@@ -477,9 +542,14 @@ namespace $ {
 					peer_face: face,
 					self_face: this.faces.get( peer ),
 				})
-				
-				if( skipped_units ) for( const unit of skipped_units ) delta.add( unit )
-				
+
+				for( const unit of this._log.get( peer ) ?? [] ) {
+					if( unit.time_tick() > face.time_tick ) break
+					if( !this.unit_current( unit ) ) continue
+					if( unit instanceof $giper_baza_unit_sand ) this.sand_load( unit )
+					delta.add( unit )
+				}
+
 			}
 			
 			for( const unit of delta ) {
@@ -708,26 +778,115 @@ namespace $ {
 			return land
 		}
 		
+		// порядок пешек между записями; связи ссылками:
+		// строковый ключ после переезда узла достался бы новому узлу
+		_orders = new Map< string, {
+			root: $giper_baza_land_order_node
+			by_key: Map< string, $giper_baza_land_order_node >
+			by_self: Map< string, $giper_baza_land_order_node >
+			res: $giper_baza_unit_sand[]
+			done: number
+			purge: number
+		} >()
+
+		/** Досыпает свежие Sand из журнала Головы в готовый порядок. null — нужен полный пересбор. */
+		sand_ordered_add( order_key: string, head: $giper_baza_link, peer: $giper_baza_link | null ) {
+
+			const state = this._orders.get( order_key )
+			if( !state ) return null
+
+			// было удаление без замены — только пересбор
+			if( ( this._head_purge.get( head.str ) ?? 0 ) !== state.purge ) return null
+
+			const log = this._head_log.get( head.str ) ?? []
+			const { root, by_key, by_self } = state
+			const key = peer === null ? ( sand: $giper_baza_unit_sand )=> sand.path() : ( sand: $giper_baza_unit_sand )=> sand.self().str
+			const compare = $giper_baza_unit_sand.compare
+
+			let dirty = false
+
+			for( ; state.done < log.length; ++ state.done ) {
+
+				const kid = log[ state.done ]
+
+				if( peer?.str && kid.lord().str !== peer.str ) continue
+				if( !this.unit_current( kid ) ) continue
+
+				const lead_self = kid.lead().str
+				let lead = lead_self ? by_self.get( lead_self ) : root
+				if( !lead ) return null
+
+				while( lead.next && ( compare( lead.next.sand!, kid ) < 0 ) ) lead = lead.next
+
+				const exists = by_key.get( key( kid ) )
+				if( exists ) {
+
+					// быстрая только замена свежим на том же месте
+					if( exists.prev !== lead ) return null
+					if( compare( exists.sand!, kid ) <= 0 ) return null
+
+					exists.sand = kid
+					dirty = true
+					continue
+
+				}
+
+				const item: $giper_baza_land_order_node = { sand: kid, prev: lead, next: lead.next }
+				if( lead.next ) lead.next.prev = item
+				lead.next = item
+
+				by_key.set( key( kid ), item )
+
+				const winner = by_self.get( kid.self().str )
+				if( !winner || compare( winner.sand!, kid ) < 0 ) by_self.set( kid.self().str, item )
+
+				// хвостовая вставка дописывается в готовую выдачу как есть
+				if( item.next ) dirty = true
+				else state.res.push( kid )
+
+			}
+
+			if( dirty ) {
+				const res = [] as $giper_baza_unit_sand[]
+				for( let cursor = root.next; cursor; cursor = cursor.next ) res.push( cursor.sand! )
+				state.res = res
+			}
+
+			return state.res
+		}
+
 		@ $mol_mem_key
 		sand_ordered( { head, peer }: { head: $giper_baza_link, peer: $giper_baza_link | null } ) {
-			
+
 			this.sync()
 			// this.secret() // early async to prevent async on put
-			
+
+			this._pulse.get( 'head|' + head.str )
+
+			const order_key = ( peer === null ? '=' : peer.str || '*' ) + head.str
+
+			const fast = this.sand_ordered_add( order_key, head, peer )
+			if( fast ) return fast
+			this._orders.delete( order_key )
+
 			const queue = ( peer?.str )
 				? [ ... this._sand.get( head.str )?.get( peer!.str )?.values() ?? [] ]
 				: [ ... this._sand.get( head.str )?.values() ?? [] ].flatMap( units => [ ... units.values() ] )
-			
+
 			const slices = new Map
 			for( const sand of queue ) slices.set( sand, 0 )
-			
+
+			let merged = false
+
 			merge: if( head.str !== $giper_baza_land_root.tine.str ) {
 				
 				const tines = ( this.Tine()?.items_vary().slice().reverse() ?? [] )
 					.map( val => $giper_baza_link_schema.cast( val ) )
 					.filter( $mol_guard_defined )
 				if( !tines.length ) break merge
-				
+
+				merged = true
+
 				const exists = new Set( queue.map( sand => sand.self().str ) )
 				
 				const glob = this.$.$giper_baza_glob
@@ -826,12 +985,45 @@ namespace $ {
 			}
 			
 			const res = [] as $giper_baza_unit_sand[]
-			
+
 			while( entry.next !== null ) {
 				entry = by_key.get( entry.next )!
 				res.push( entry.sand! )
 			}
-			
+
+			store: if( !merged ) {
+
+				// пересаживаем порядок на ссылочные узлы — базу досыпаний
+				const root: $giper_baza_land_order_node = { sand: null, prev: null, next: null }
+				const o_key = new Map< string, $giper_baza_land_order_node >()
+				const o_self = new Map< string, $giper_baza_land_order_node >()
+
+				let tail = root
+				for( const sand of res ) {
+					const node: $giper_baza_land_order_node = { sand, prev: tail, next: null }
+					tail.next = node
+					tail = node
+					o_key.set( key( sand ), node )
+				}
+
+				for( const [ self, kn ] of by_self ) {
+					if( self === null ) continue
+					const node = o_key.get( key( kn.sand! ) )
+					if( !node || node.sand !== kn.sand ) break store // победитель вне списка
+					o_self.set( self, node )
+				}
+
+				this._orders.set( order_key, {
+					root,
+					by_key: o_key,
+					by_self: o_self,
+					res,
+					done: ( this._head_log.get( head.str ) ?? [] ).length,
+					purge: this._head_purge.get( head.str ) ?? 0,
+				})
+
+			}
+
 			return res
 		}
 		
@@ -1077,50 +1269,33 @@ namespace $ {
 		
 		@ $mol_mem
 		sand_encoding() {
-			
+
 			this.loading()
-			
-			const sands = [] as $giper_baza_unit_sand[]
-			
-			for( const kids of this._sand.values() ) {
-				for( const units of kids.values() ) {
-					for( const sand of units.values() ) {
-						
-						const sync_sand = $mol_wire_sync( sand )
-						if( sync_sand._vary === undefined ) continue
-						if( sync_sand._ball ) continue
-						
-						sands.push( sand )
-						
-					}
-				}
-			}
-			
-			if( !sands.length ) return
-			$mol_wire_sync( this ).sands_encode( sands )
-		
+			this._pulse.get( 'rev' )
+
+			const sands = this._fresh_encoding.filter( sand => {
+				const sync_sand = $mol_wire_sync( sand )
+				if( sync_sand._vary === undefined ) return false
+				if( sync_sand._ball ) return false
+				return true
+			} )
+
+			if( sands.length ) $mol_wire_sync( this ).sands_encode( sands )
+
+			this._fresh_encoding = []
+
 		}
-		
+
 		@ $mol_mem
 		units_unsigned() {
-			
-			const signing = [] as $giper_baza_unit_base[]
-			
-			for( const gift of this._gift.values() ) {
-				if( this.unit_seal( gift ) ) continue
-				signing.push( gift )
-			}
-			
-			for( const kids of this._sand.values() ) {
-				for( const units of kids.values() ) {
-					for( const sand of units.values() ) {
-						if( this.unit_seal( sand ) ) continue
-						signing.push( sand )
-					}
-				}
-			}
-			
-			return signing
+
+			this._pulse.get( 'rev' )
+
+			this._fresh_signing = this._fresh_signing.filter(
+				unit => !this.unit_seal( unit ) && this.unit_current( unit )
+			)
+
+			return [ ... this._fresh_signing ]
 		}
 		
 		@ $mol_mem
@@ -1131,53 +1306,47 @@ namespace $ {
 		
 		@ $mol_mem
 		units_unsaved() {
-			
+
+			this._pulse.get( 'rev' )
+
 			const mine = this.mine()
 			const persisting = new Set< $giper_baza_unit >()
-			
+
 			const check_lord = ( lord: $giper_baza_link )=> {
-				
+
 				const pass = this.lord_pass( lord )
 				if( !pass ) return
-				
+
 				if( mine.units_persisted.has( pass ) ) return
-				
+
 				persisting.add( pass )
-				
+
 			}
-			
-			for( const gift of this._gift.values() ) {
-				
-				if( mine.units_persisted.has( gift ) ) continue
-				
-				persisting.add( gift )
-				check_lord( gift.lord() )
-				check_lord( gift.mate() )
-				
-			}
-			
-			for( const kids of this._sand.values() ) {
-				for( const units of kids.values() ) {
-					for( const sand of units.values() ) {
-						
-						if( $mol_wire_sync( mine.units_persisted ).has( sand ) ) continue
-						
-						persisting.add( sand )
-						check_lord( sand.lord() )
-						
-					}
+
+			const pending = this._fresh_saving.filter( unit => {
+
+				if( !this.unit_current( unit ) ) return false
+
+				const persisted = unit instanceof $giper_baza_unit_sand
+					? $mol_wire_sync( mine.units_persisted ).has( unit )
+					: mine.units_persisted.has( unit )
+				if( persisted ) return false
+
+				persisting.add( unit )
+
+				if( unit instanceof $giper_baza_unit_gift ) {
+					check_lord( unit.lord() )
+					check_lord( unit.mate() )
 				}
-			}
-			
-			for( const seal of this._seal_shot.values() ) {
-				
-				if( !seal.alive_items.size ) continue
-				if( mine.units_persisted.has( seal ) ) continue
-				
-				persisting.add( seal )
-				
-			}
-			
+
+				if( unit instanceof $giper_baza_unit_sand ) check_lord( unit.lord() )
+
+				return true
+
+			})
+
+			this._fresh_saving = pending
+
 			return [ ... persisting ]
 		}
 		
