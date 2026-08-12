@@ -361,8 +361,41 @@ namespace $ {
 
 		}
 
+		/**
+		 * Проверка корректности коллекции. Нужна рядом с замерами скорости:
+		 * ускорить `has()` можно и тем, что он перестанет находить совпадения,
+		 * а по времени прогона такую поломку не отличить от честной оптимизации.
+		 */
+		static async run_verify() {
+
+			const count = Math.max( 2, Math.round( this.rate() * this.duration() ) )
+
+			this.print_pair( 'Role', 'verify' )
+			await this.auth_setup()
+
+			const ctx = this.isolate()
+			const list = ctx.$giper_baza_glob.home().cast( $giper_baza_list_str )
+
+			// Сначала уникальные, затем ровно те же значения второй раз:
+			// правильная реализация должна оставить только первые.
+			for( let i = 1; i <= count; ++i ) list.add( 'p' + i )
+			for( let i = 1; i <= count; ++i ) list.add( 'p' + i )
+
+			const items = list.items_vary() as readonly unknown[]
+			const uniq = new Set( items.map( it => String( it ) ) )
+
+			this.print_pair( 'Ожидалось', count )
+			this.print_pair( 'В списке', items.length )
+			this.print_pair( 'Уникальных', uniq.size )
+			this.print_pair( 'Итог', items.length === count && uniq.size === count ? 'ОК' : 'РАСХОЖДЕНИЕ' )
+
+			process.exit( items.length === count && uniq.size === count ? 0 : 1 )
+
+		}
+
 		static async run() {
 
+			if( this.role() as string === 'verify' ) return this.run_verify()
 			if( this.role() as string === 'list' ) return this.run_list()
 			if( this.role() as string === 'local' ) return this.run_local()
 
