@@ -197,8 +197,6 @@ namespace $ {
 			if( !head_log ) this._head_log.set( sand.head().str, head_log = [] )
 			head_log.push( sand )
 
-			this.pulse( 'head|' + sand.head().str )
-
 			this.unit_income( sand, peer.str )
 			this._fresh_signing.push( sand )
 			this._fresh_encoding.push( sand )
@@ -285,7 +283,6 @@ namespace $ {
 			this._sand_total -= 1
 
 			if( !replaced ) this._head_purge.set( sand.head().str, ( this._head_purge.get( sand.head().str ) ?? 0 ) + 1 )
-			this.pulse( 'head|' + sand.head().str )
 
 			this.pulse()
 
@@ -852,14 +849,6 @@ namespace $ {
 			this.sync()
 			// this.secret() // early async to prevent async on put
 
-			this._pulse.get( 'head|' + head.str )
-
-			const order_key = ( peer === null ? '=' : peer.str || '*' ) + head.str
-
-			const fast = this.sand_ordered_add( order_key, head, peer )
-			if( fast ) return fast
-			this._orders.delete( order_key )
-
 			const queue = ( peer?.str )
 				? [ ... this._sand.get( head.str )?.get( peer!.str )?.values() ?? [] ]
 				: [ ... this._sand.get( head.str )?.values() ?? [] ].flatMap( units => [ ... units.values() ] )
@@ -899,7 +888,18 @@ namespace $ {
 			}
 			
 			if( queue.length < 2 ) return queue
-			
+
+			const order_key = ( peer === null ? '=' : peer.str || '*' ) + head.str
+
+			if( merged ) {
+				// с примесью чужих лендов порядок между записями не храним
+				this._orders.delete( order_key )
+			} else {
+				const fast = this.sand_ordered_add( order_key, head, peer )
+				if( fast ) return fast
+				this._orders.delete( order_key )
+			}
+
 			const compare = ( left: $giper_baza_unit_sand, right: $giper_baza_unit_sand )=> {
 				return ( slices.get( left ) - slices.get( right ) ) || $giper_baza_unit_sand.compare( left, right )
 			}
