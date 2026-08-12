@@ -316,9 +316,20 @@ namespace $ {
 
 			const durs = [] as number[]
 
+			// `add()` перед вставкой зовёт `has()`, а это линейный поиск по списку:
+			// он даёт квадратичность сам по себе, независимо от движка. В рисовании
+			// штрихи заведомо уникальны, проверка не нужна, поэтому по умолчанию
+			// вставляем напрямую — тем же вызовом, что делает add после проверки.
+			// role=list_add возвращает старое поведение, если надо сравнить.
+			const with_check = $mol_state_arg.value( 'check' ) !== null
+
 			for( let i = 1; i <= count; ++i ) {
 				const start = Date.now()
-				list.add( 'p' + i )
+				if( with_check ) {
+					list.add( 'p' + i )
+				} else {
+					list.land().post( $giper_baza_link.hole, list.head(), null, 'p' + i, 'term' )
+				}
 				durs.push( Date.now() - start )
 			}
 
