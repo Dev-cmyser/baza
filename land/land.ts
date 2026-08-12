@@ -784,7 +784,6 @@ namespace $ {
 			root: $giper_baza_land_order_node
 			by_key: Map< string, $giper_baza_land_order_node >
 			by_self: Map< string, $giper_baza_land_order_node >
-			res: $giper_baza_unit_sand[]
 			done: number
 			purge: number
 		} >()
@@ -802,8 +801,6 @@ namespace $ {
 			const { root, by_key, by_self } = state
 			const key = peer === null ? ( sand: $giper_baza_unit_sand )=> sand.path() : ( sand: $giper_baza_unit_sand )=> sand.self().str
 			const compare = $giper_baza_unit_sand.compare
-
-			let dirty = false
 
 			for( ; state.done < log.length; ++ state.done ) {
 
@@ -826,7 +823,6 @@ namespace $ {
 					if( compare( exists.sand!, kid ) <= 0 ) return null
 
 					exists.sand = kid
-					dirty = true
 					continue
 
 				}
@@ -840,19 +836,14 @@ namespace $ {
 				const winner = by_self.get( kid.self().str )
 				if( !winner || compare( winner.sand!, kid ) < 0 ) by_self.set( kid.self().str, item )
 
-				// хвостовая вставка дописывается в готовую выдачу как есть
-				if( item.next ) dirty = true
-				else state.res.push( kid )
-
 			}
 
-			if( dirty ) {
-				const res = [] as $giper_baza_unit_sand[]
-				for( let cursor = root.next; cursor; cursor = cursor.next ) res.push( cursor.sand! )
-				state.res = res
-			}
+			// выдача всегда свежим массивом: мутация прежнего скрыла бы
+			// изменение от подписчиков при сравнении по ссылке
+			const res = [] as $giper_baza_unit_sand[]
+			for( let cursor = root.next; cursor; cursor = cursor.next ) res.push( cursor.sand! )
 
-			return state.res
+			return res
 		}
 
 		@ $mol_mem_key
@@ -1017,7 +1008,6 @@ namespace $ {
 					root,
 					by_key: o_key,
 					by_self: o_self,
-					res,
 					done: ( this._head_log.get( head.str ) ?? [] ).length,
 					purge: this._head_purge.get( head.str ) ?? 0,
 				})
