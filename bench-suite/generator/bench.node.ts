@@ -18,6 +18,11 @@ namespace $ {
 	  * Master, not a local cache hit) computes `Date.now() - val()` on every change it notices. */
 	export class $giper_bench extends $mol_object2 {
 
+		/** Значение аргумента командной строки со значением по умолчанию. */
+		static arg( name: string, def: string ) {
+			return $mol_state_arg.value( name ) ?? def
+		}
+
 		static master() {
 			return $mol_state_arg.value( 'master' ) || $mol_fail( new Error( 'Argument "master" is required' ) )
 		}
@@ -437,8 +442,76 @@ namespace $ {
 
 		}
 
+		/**
+		 * Файлы. Писатель кладёт в ленд файл заданного размера, читатель в
+		 * отдельном процессе ждёт, пока тот доедет целиком.
+		 *
+		 * Файл режется на куски по 32 КБ (`$giper_baza_file.buffer`), поэтому
+		 * мегабайт превращается в 32 юнита, а сто мегабайт — в 3200.
+		 */
+		static async run_file() {
+
+			const mb = Number( this.arg( 'size', '1' ) )
+			const bytes = Math.round( mb * 1024 * 1024 )
+			const reader = this.role() as string === 'file_read'
+
+			this.print_pair( 'Role', reader ? 'file_read' : 'file_write' )
+			this.print_pair( 'Размер', mb + ' МБ' )
+
+			await this.auth_setup()
+
+			const ctx = this.isolate( this.master() )
+			await this.connect( ctx.$giper_baza_glob, 'file_conn' )
+			const file = ctx.$giper_baza_glob.home().cast( $giper_baza_file )
+
+			if( reader ) {
+
+				const until = Date.now() + Number( this.arg( 'drain_s', '120' ) ) * 1000
+				const start = Date.now()
+				let got = 0
+
+				while( Date.now() < until ) {
+					try {
+						got = file.buffer()?.byteLength ?? 0
+					} catch( error ) {
+						got = 0
+					}
+					if( got >= bytes ) break
+					await this.$.$mol_wait_timeout_async( 20 )
+				}
+
+				const dur = Date.now() - start
+				this.print_pair( 'Получено', ( got / 1048576 ).toFixed( 2 ) + ' МБ' )
+				this.print_pair( 'Время', dur + ' мс' )
+				if( got >= bytes ) this.print_pair( 'Скорость', ( mb / ( dur / 1000 ) ).toFixed( 2 ) + ' МБ/с' )
+				else this.print_pair( 'Итог', 'НЕ ДОЕХАЛ полностью' )
+
+			} else {
+
+				// Содержимое неоднородное: сплошные нули сжались бы и исказили замер.
+				const data = new Uint8Array( bytes )
+				for( let i = 0; i < bytes; i += 7 ) data[ i ] = i & 0xFF
+
+				const start = Date.now()
+				file.buffer( data )
+				const dur = Date.now() - start
+
+				this.print_pair( 'Запись', dur + ' мс' )
+				this.print_pair( 'Скорость', ( mb / ( dur / 1000 ) ).toFixed( 2 ) + ' МБ/с' )
+				this.print_pair( 'Кусков', Math.ceil( bytes / 2 ** 15 ) )
+
+				// Даём времени на отправку в сеть, иначе процесс уйдёт раньше синка.
+				await this.$.$mol_wait_timeout_async( Number( this.arg( 'hold_s', '30' ) ) * 1000 )
+
+			}
+
+			process.exit()
+
+		}
+
 		static async run() {
 
+			if( ( this.role() as string ).startsWith( 'file' ) ) return this.run_file()
 			if( this.role() as string === 'atom_read' ) return this.run_atom_read()
 			if( this.role() as string === 'verify' ) return this.run_verify()
 			if( this.role() as string === 'list' ) return this.run_list()
