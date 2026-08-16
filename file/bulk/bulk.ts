@@ -21,9 +21,9 @@ namespace $ {
 		/** Content-Type */
 		Type: $giper_baza_atom_text,
 		/** Полный размер в байтах, чтобы не поднимать куски ради него */
-		Size: $giper_baza_atom_int,
+		Size: $giper_baza_atom_real,
 		/** Каким размером куска файл нарезан: без него не собрать обратно */
-		Grain: $giper_baza_atom_int,
+		Grain: $giper_baza_atom_real,
 		/** Содержимое кусками */
 		Chunks: $giper_baza_list_bin,
 	}) {
@@ -63,16 +63,12 @@ namespace $ {
 
 		/** Размер содержимого. Читается из метаданных, куски не поднимаются. */
 		size( next?: number ) {
-			const val = this.Size( next === undefined ? undefined : BigInt( next ) )
-				?.val( next === undefined ? undefined : BigInt( next ) )
-			return Number( val ?? 0n )
+			return this.Size( next )?.val( next ) ?? 0
 		}
 
 		/** Размер куска, которым нарезано содержимое. */
 		grain( next?: number ) {
-			const val = this.Grain( next === undefined ? undefined : BigInt( next ) )
-				?.val( next === undefined ? undefined : BigInt( next ) )
-			return Number( val ?? 0n ) || $giper_baza_file_bulk.grain_small
+			return this.Grain( next )?.val( next ) || $giper_baza_file_bulk.grain_small
 		}
 
 		/** Сколько кусков занимает содержимое — без их чтения. */
@@ -82,7 +78,7 @@ namespace $ {
 		}
 
 		/** Есть ли содержимое. Не поднимает куски из хранилища. */
-		filled() {
+		has_data() {
 			return this.size() > 0
 		}
 

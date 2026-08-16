@@ -78,7 +78,7 @@ namespace $ {
 			const land = $giper_baza_land.make({ $ })
 			const file = land.Data( $giper_baza_file_bulk )
 
-			$mol_assert_equal( file.filled(), false )
+			$mol_assert_equal( file.has_data(), false )
 			$mol_assert_equal( file.size(), 0 )
 			$mol_assert_equal( file.grains(), 0 )
 
@@ -86,7 +86,7 @@ namespace $ {
 			file.buffer( new Uint8Array( size ) )
 
 			$mol_assert_equal( file.size(), size )
-			$mol_assert_equal( file.filled(), true )
+			$mol_assert_equal( file.has_data(), true )
 			$mol_assert_equal( file.grains(), file.chunks().length )
 
 		},
