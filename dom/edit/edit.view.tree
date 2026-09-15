@@ -16,31 +16,87 @@ $giper_baza_dom_edit $mol_view
 				M? <=> inline_toggle*code? null - \Monospace
 	sub /
 		<= Tools $mol_float sub /
-			<= Strong_button $mol_button_minor
-				hint \Strong: Ctrl+B
-				enabled? <=> selected? false
-				click? <=> inline_toggle*strong?
-				sub / <= Strong_icon $mol_icon_exclamation_thick
-			<= Em_button $mol_button_minor
-				hint \Emphasis: Ctrl+I
-				enabled? <=> selected? false
-				click? <=> inline_toggle*em?
-				sub / <= Em_icon $mol_icon_function
-			<= Ins_button $mol_button_minor
-				hint \Insertion: Ctrl+U
-				enabled? <=> selected? false
-				click? <=> inline_toggle*ins?
-				sub / <= Ins_icon $mol_icon_plus_thick
-			<= Del_button $mol_button_minor
-				hint \Deletion: Ctrl+O
-				enabled? <=> selected? false
-				click? <=> inline_toggle*del?
-				sub / <= Del_icon $mol_icon_minus_thick
-			<= Code_button $mol_button_minor
-				hint \Code: Ctrl+M
-				enabled? <=> selected? false
-				click? <=> inline_toggle*code?
-				sub / <= Code_icon $mol_icon_xml
+			<= Inline_format_menu $mol_pick
+				hint \Inline Formating
+				trigger_content /
+					<= Inline_format_menu_icon $mol_icon_marker
+				bubble_content /
+					<= Strong_button $mol_button_minor
+						title \Strong
+						hint \Ctrl+B
+						enabled? <=> selected? false
+						click? <=> inline_toggle*strong?
+					<= Em_button $mol_button_minor
+						title \Emphasis
+						hint \Ctrl+I
+						enabled? <=> selected? false
+						click? <=> inline_toggle*em?
+					<= Ins_button $mol_button_minor
+						title \Insertion
+						hint \Ctrl+U
+						enabled? <=> selected? false
+						click? <=> inline_toggle*ins?
+					<= Del_button $mol_button_minor
+						title \Deletion
+						hint \Ctrl+O
+						enabled? <=> selected? false
+						click? <=> inline_toggle*del?
+					<= Code_button $mol_button_minor
+						title \Code
+						hint \Ctrl+M
+						enabled? <=> selected? false
+						click? <=> inline_toggle*code?
+			<= Heading_menu $mol_pick
+				hint \Heading
+				trigger_content /
+					<= Heading_menu_icon $mol_icon_format_size
+				bubble_content /
+					<= Header_inc_button $mol_button_minor
+						title \Increase
+						hint \Ctrl+H
+						enabled false
+					<= Header_dec_button $mol_button_minor
+						title \Decrease
+						hint \Ctrl+Shift+H
+						enabled false
+			<= Indent_menu $mol_pick
+				hint \Indentation
+				trigger_content /
+					<= Indent_menu_icon $mol_icon_format_list_bulleted
+				bubble_content /
+					<= Indent_inc_button $mol_button_minor
+						title \Increase
+						hint \Ctrl+Shift+L
+						enabled false
+					<= Indent_dec_button $mol_button_minor
+						title \Decrease
+						hint \Ctrl+L
+						enabled false
+					<= Bullet_button $mol_button_minor
+						title \Bullets
+						hint \Ctrl+8
+						enabled false
+					<= Number_button $mol_button_minor
+						title \Numbers
+						hint \Ctrl+1
+						enabled false
+			<= Quote_menu $mol_pick
+				hint \Quotation
+				trigger_content /
+					<= Quote_menu_icon $mol_icon_comment_quote_outline
+				bubble_content /
+					<= Quote_inc_button $mol_button_minor
+						title \Increase
+						hint \Ctrl+Shift+Q
+						enabled false
+					<= Quote_dec_button $mol_button_minor
+						title \Decrease
+						hint \Ctrl+Q
+						enabled false
+					<= Quote_code_button $mol_button_minor
+						title \Code
+						hint \Ctrl+3
+						enabled false
 		<= Content $mol_view
 			attr *
 				contenteditable <= editable? \true
