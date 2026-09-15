@@ -1,7 +1,7 @@
 /** @jsx $mol_jsx */
 /** @jsxFrag $mol_jsx_frag */
 namespace $.$$ {
-	export class $giper_baza_dom_edit extends $.$giper_baza_dom_edit {
+	export class $giper_baza_rich_edit extends $.$giper_baza_rich_edit {
 		
 		// dom_id() {
 		// 	return this.pawn()?.head().str ?? ''
@@ -42,7 +42,7 @@ namespace $.$$ {
             // }
 			
 			let dom = this.pawn( null! )
-			// if( container.id ) dom = dom.land().Pawn( $giper_baza_dom ).Head( new $giper_baza_link( container.id ) )
+			// if( container.id ) dom = dom.land().Pawn( $giper_baza_rich ).Head( new $giper_baza_link( container.id ) )
 			let nodes = [ ... container.childNodes ]
 			nodes = this.$.$mol_dom_safe( nodes as Element[] )
 			// console.log( event, container, dom, nodes )

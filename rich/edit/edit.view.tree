@@ -1,5 +1,5 @@
-$giper_baza_dom_edit $mol_view
-	pawn? $giper_baza_dom
+$giper_baza_rich_edit $mol_view
+	pawn? $giper_baza_rich
 	enabled true
 	hint \
 	auto /

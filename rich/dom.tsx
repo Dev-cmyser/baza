@@ -1,12 +1,12 @@
 /** @jsx $mol_jsx */
 /** @jsxFrag $mol_jsx_frag */
 namespace $ {
-	export class $giper_baza_dom extends $giper_baza_pawn {
+	export class $giper_baza_rich extends $giper_baza_pawn {
 		
 		dom( next?: ( Element | Attr | Text )[] ): ( Element | Attr | Text )[] {
 			
 			const land = this.land()
-			const doms = land.Pawn( $giper_baza_dom )
+			const doms = land.Pawn( $giper_baza_rich )
 			const regs = land.Pawn( $giper_baza_atom_text )
 			
 			const used_ids = new Set< string >
@@ -196,7 +196,7 @@ namespace $ {
 						? $mol_schema_string.cast( land.sand_decode( unit ) )
 						: doms.Head( unit.self() ).dom()
 					
-					return <Tag { ... attrs } id={ unit.self().str } giper_baza_dom_link={ unit.self() } >{ content }</Tag>
+					return <Tag { ... attrs } id={ unit.self().str } >{ content }</Tag>
 					
 				} )
 				

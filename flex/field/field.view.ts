@@ -159,7 +159,7 @@ namespace $.$$ {
 		
 		@ $mol_mem
 		rich_pawn( next?: any ) {
-			return this.pawn( next )?.cast( $giper_baza_dom ) ?? null!
+			return this.pawn( next )?.cast( $giper_baza_rich ) ?? null!
 		}
 		
 		@ $mol_mem
