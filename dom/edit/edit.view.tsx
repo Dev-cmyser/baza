@@ -58,6 +58,20 @@ namespace $.$$ {
 				event => this.selection_save(),
 			)
 		}
+		
+		@ $mol_mem
+		selected() {
+			
+			$mol_wire_watch()
+			
+			const sel = $mol_dom_range.from_selection()
+			if( !sel ) return false
+			
+			const root = this.Content().dom_node()
+			if( !$mol_dom_range.inside( root ).range_contains( sel ) ) return false
+
+			return true
+		}
 
 		selection_save() {
 
