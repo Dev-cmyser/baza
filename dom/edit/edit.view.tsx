@@ -176,16 +176,27 @@ namespace $.$$ {
 		
 		paste( event?: ClipboardEvent ) {
 			
+			const sel = $mol_dom_range.from_selection()!
+			const html = event!.clipboardData!.getData( 'text/html' )
 			const text = event!.clipboardData!.getData( 'text/plain' )
 			
+			let url = true
 			try { new URL( text ) }
-			catch { return }
+			catch { url = false }
 			
-			const sel = $mol_dom_range.from_selection()!
-			if( sel.is_empty() ) {
-				sel.paste( <a href={text}>{text}</a> )
+			if( url ) {
+				
+				if( sel.is_empty() ) {
+					sel.paste( <a href={text}>{text}</a> )
+				} else {
+					sel.surround( <a href={text} /> )
+				}
+				
 			} else {
-				sel.surround( <a href={text} /> )
+				
+				const data = html ? $mol_dom_range.inside( $mol_dom_parse( html ).documentElement ).copy() : new Text( text )
+				sel.paste( data )
+				
 			}
 			
 			this.selection_load()
