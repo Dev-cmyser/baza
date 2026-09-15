@@ -30,8 +30,7 @@ namespace $ {
 		
 		static check( val: string ) {
 			try {
-				new this( val )
-				return val
+				return new this( val )
 			} catch {
 				return null
 			}

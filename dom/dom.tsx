@@ -9,15 +9,25 @@ namespace $ {
 			const doms = land.Pawn( $giper_baza_dom )
 			const regs = land.Pawn( $giper_baza_atom_text )
 			
-			if( next ) {
+			const used_ids = new Set< string >
+			
+			const link_of = ( el: Node | string )=> {
 				
-				const ids = new Set< string >()
-				for( const node of next ) {
-					if(!( node instanceof this.$.$mol_dom_context.Element )) continue
-					let id = $giper_baza_link.check( node.id )
-					if( !id || ids.has( id ) ) node.id = id = ''
-					ids.add( id )
+				if(!( el instanceof this.$.$mol_dom_context.Element )) return null
+				if( !el.id ) return null
+				
+				const link = $giper_baza_link.check( el.id )
+				if( link && !used_ids.has( link.str ) ) {
+					used_ids.add( link.str )
+					return link
 				}
+				
+				el.id = ''
+				return null
+				
+			}
+			
+			if( next ) {
 				
 				const sample = [] as ( Element | Attr | string )[]
 				let texts = ''
@@ -36,6 +46,7 @@ namespace $ {
 					
 						case( node.ELEMENT_NODE ): {
 							if( ( node as Element ).localName === 'span' ) {
+								link_of( node )
 								for( const kid of [ ... node.childNodes ] ) {
 									collect( kid as Element )
 								}
@@ -106,24 +117,22 @@ namespace $ {
 						} else if( next.nodeType === next.ATTRIBUTE_NODE ) {
 							return land.sand_decode( prev ) === next.nodeName
 						} else {
-							return prev.self().str === ( next as Element ).id
+							return prev.self().str === link_of( next )?.str
 						}
 					},
 					drop: ( prev, lead )=> land.sand_wipe( prev ),
 					insert: ( next, lead )=> {
-						return land.post(
+						const sand = land.post(
 							lead?.self() ?? $giper_baza_link.hole,
 							this.head(),
-							typeof next === 'string'
-								? null
-								: next.nodeType === next.ATTRIBUTE_NODE
-									? null
-									: $giper_baza_link.check( ( next as Element ).id )
-										? new $giper_baza_link( ( next as Element ).id )
-										: null,
+							link_of( next ),
 							val( next ),
 							tag( next ),
 						)
+						if( typeof next !== 'string' && next.nodeType === next.ELEMENT_NODE ) {
+							;( next as Element ).id = sand.self().str
+						}
+						return sand
 					},
 					update: ( next, prev, lead )=> ( typeof next !== 'string' || next === land.sand_decode( prev ) )
 						? prev
@@ -134,13 +143,16 @@ namespace $ {
 							val( next ),
 							tag( next ),
 						),
-					replace: ( next, prev, lead )=> land.post(
-						lead?.self() ?? $giper_baza_link.hole,
-						prev.head(),
-						prev.self(),
-						val( next ),
-						tag( next ),
-					),
+					// replace: ( next, prev, lead )=> {
+					// 	land.sand_wipe( prev )
+					// 	return land.post(
+					// 		lead?.self() ?? $giper_baza_link.hole,
+					// 		prev.head(),
+					// 		link_of( next ),
+					// 		val( next ),
+					// 		tag( next ),
+					// 	)
+					// },
 				})
 
 				units = this.units()
@@ -184,7 +196,7 @@ namespace $ {
 						? $mol_schema_string.cast( land.sand_decode( unit ) )
 						: doms.Head( unit.self() ).dom()
 					
-					return <Tag { ... attrs } id={ unit.self().str } >{ content }</Tag>
+					return <Tag { ... attrs } id={ unit.self().str } giper_baza_dom_link={ unit.self() } >{ content }</Tag>
 					
 				} )
 				
@@ -206,22 +218,19 @@ namespace $ {
 		@ $mol_mem_key
 		selection(
 			lord: $giper_baza_link,
-			next?: readonly( readonly[ $giper_baza_link /*self*/, number /*pos*/ ] )[],
-		): readonly( readonly[ $giper_baza_link /*self*/, number /*pos*/ ] )[]  {
+			next?: readonly[ from: readonly[ self: string, x: number, y: number ], to: readonly[ self: string, x: number, y: number ] ],
+		): Exclude< typeof next, undefined >  {
 
 			const base = this.$.$giper_baza_glob.Land( lord ).Data( $giper_baza_flex_user )
 			
 			if( next ) {
 				
-				base.caret( next.map( point => point.join( ':' ) ).join( '|' ) )
+				base.caret( next )
 				return next
 				
 			} else {
 				
-				return base.caret()?.split( '|' ).map( point => {
-					const chunks = point.split( ':' )
-					return [ new $giper_baza_link( chunks[0] ), Number( chunks[1] ) || 0 ]
-				} ) ?? [ [ this.head(), 0 ], [ this.head(), 0 ] ]
+				return base.caret() ?? [ [ this.head().str, 0, 0 ], [ this.head().str, 0, 0 ] ]
 				
 			}
 

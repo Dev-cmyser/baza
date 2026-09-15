@@ -49,6 +49,9 @@ $giper_baza_flex_field $mol_view
 		enabled <= enabled true
 		value? <=> text? \
 		selection? <=> text_selection? /
+	Rich $giper_baza_dom_edit
+		enabled <= enabled true
+		pawn? <=> rich_pawn? $giper_baza_dom
 	List $mol_list
 		rows /
 			<= List_drop $mol_drop

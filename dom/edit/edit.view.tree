@@ -1,19 +1,46 @@
 $giper_baza_dom_edit $mol_view
-	pawn $giper_baza_dom
-	attr * contenteditable <= editable \true
-	event * input? <=> save? null
+	pawn? $giper_baza_dom
 	enabled true
 	hint \
 	auto /
-		<= setup null
 		<= selection_load null
 		<= selection_sync null
 	plugins /
-		<= Hotkey $mol_hotkey
+		<= Inline_toggle $mol_hotkey
 			mod_ctrl true
 			key *
-				B? <=> toggle*strong? null - \Brutal
-				I? <=> toggle*em? null - \Ironic
-				U? <=> toggle*ins? null - \Update
-				O? <=> toggle*del? null - \Omit
-				M? <=> toggle*code? null - \Monospace
+				B? <=> inline_toggle*strong? null - \Brutal
+				I? <=> inline_toggle*em? null - \Ironic
+				U? <=> inline_toggle*ins? null - \Update
+				O? <=> inline_toggle*del? null - \Omit
+				M? <=> inline_toggle*code? null - \Monospace
+	sub /
+		<= Tools $mol_float sub /
+			<= Strong_button $mol_button_minor
+				hint \Strong: Ctrl+B
+				click? <=> inline_toggle*strong?
+				sub / <= Strong_icon $mol_icon_exclamation_thick
+			<= Em_button $mol_button_minor
+				hint \Emphasis: Ctrl+I
+				click? <=> inline_toggle*em?
+				sub / <= Em_icon $mol_icon_function
+			<= Ins_button $mol_button_minor
+				hint \Insertion: Ctrl+U
+				click? <=> inline_toggle*ins?
+				sub / <= Ins_icon $mol_icon_plus_thick
+			<= Del_button $mol_button_minor
+				hint \Deletion: Ctrl+O
+				click? <=> inline_toggle*del?
+				sub / <= Del_icon $mol_icon_minus_thick
+			<= Code_button $mol_button_minor
+				hint \Code: Ctrl+M
+				click? <=> inline_toggle*code?
+				sub / <= Code_icon $mol_icon_xml
+		<= Content $mol_view
+			attr *
+				contenteditable <= editable? \true
+			event *
+				input? <=> save? null
+				paste? <=> paste? null
+				pointermove? <=> hover? null
+			sub <= content /

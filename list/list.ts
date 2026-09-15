@@ -20,7 +20,7 @@ namespace $ {
 			
 		}
 		
-		/** Replace sublist by  new one with reconciliation. */
+		/** Replace sublist by new one with reconciliation. */
 		@ $mol_action
 		splice(
 			next: readonly $giper_baza_vary_type[],

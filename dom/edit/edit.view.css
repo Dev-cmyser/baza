@@ -1,46 +1,79 @@
 [giper_baza_dom_edit] {
 	flex-direction: column;
+	flex-grow: 1;
 	border-radius: var(--mol_gap_round);
-	flex: 1;
-	white-space: pre-wrap;
-}
-
-[giper_baza_dom_edit][contenteditable="true"] {
-	background-color: var(--mol_theme_field);
 	outline: 1px solid var(--mol_theme_line);
+	background-color: var(--mol_theme_field);
 }
-
-[giper_baza_dom_edit]:focus {
-	outline: none;
+[giper_baza_dom_edit]:focus-within {
 	z-index: var(--mol_layer_focus);
-	color: var(--mol_theme_text);
 	outline: 1px solid var(--mol_theme_focus);
 }
 
-[giper_baza_dom_edit] a {
-	color: var(--mol_theme_control);
-	text-decoration: none;
+[giper_baza_dom_edit_tools] {
+	border-radius: var(--mol_gap_round);
 }
 
-[giper_baza_dom_edit] p {
+[giper_baza_dom_edit_content] {
+	flex-direction: column;
+	flex: 1;
+	white-space: pre-wrap;
+	outline: none;
+}
+
+[giper_baza_dom_edit_content] a {
+	color: var(--mol_theme_control);
+	text-decoration: none;
+	border-radius: var(--mol_gap_round);
+}
+
+[giper_baza_dom_edit_content] a:hover {
+	background: var(--mol_theme_card);
+	box-shadow: 0 0 0 .25rem var(--mol_theme_card);
+}
+
+[giper_baza_dom_edit_content] p {
 	margin: 0;
 	padding: var(--mol_gap_text);
 }
 
-[giper_baza_dom_edit] img {
+[giper_baza_dom_edit_content] img {
 	margin: var(--mol_gap_block);
 	max-width: calc( 100% - 2 * var(--mol_gap_block) );
 }
 
-[giper_baza_dom_edit] hr {
+[giper_baza_dom_edit_content] strong {
+	text-shadow: 0 0;
+	font-weight: normal;
+}
+
+[giper_baza_dom_edit_content] em {
+	font-style: italic;
+}
+
+[giper_baza_dom_edit_content] ins {
+	text-decoration: none;
+	color: var(--mol_theme_special);
+}
+
+[giper_baza_dom_edit_content] del {
+	text-decoration: none;
+	color: var(--mol_theme_shade);
+}
+
+[giper_baza_dom_edit_content] del {
+	font-family: monospace;
+}
+
+[giper_baza_dom_edit_content] hr {
 	margin: var(--mol_gap_block);
 	border: none;
 	box-shadow: 0 -1px 0 0px var(--mol_theme_line);
     height: 1px;
 }
 
-[giper_baza_dom_edit] h1,
-[giper_baza_dom_edit] h2 {
+[giper_baza_dom_edit_content] h1,
+[giper_baza_dom_edit_content] h2 {
 	font-size: 1em;
 	font-weight: bolder;
 	margin: 0;

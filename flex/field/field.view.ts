@@ -19,6 +19,7 @@ namespace $.$$ {
 				case 'time': return null
 				case 'dict': return null
 				case 'text': return null
+				case 'rich': return null
 				case 'list': return null
 				default: return null
 			}
@@ -38,6 +39,7 @@ namespace $.$$ {
 				case 'time': return this.Atom()
 				case 'dict': return this.Dict()
 				case 'text': return this.Text()
+				case 'rich': return this.Rich()
 				case 'list': return this.List()
 				default: return $mol_fail( new Error( `Unsuported Pawn type (${type})` ) )
 			}
@@ -156,8 +158,13 @@ namespace $.$$ {
 		}
 		
 		@ $mol_mem
+		rich_pawn( next?: any ) {
+			return this.pawn( next )?.cast( $giper_baza_dom ) ?? null!
+		}
+		
+		@ $mol_mem
 		dict_title() {
-			return this.pawn().cast( $giper_baza_entity ).Title()?.val() || this.pawn().link().str
+			return this.pawn()?.cast( $giper_baza_entity ).Title()?.val() || this.pawn().link().str
 		}
 
 		@ $mol_mem

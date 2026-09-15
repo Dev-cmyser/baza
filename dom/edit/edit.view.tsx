@@ -2,47 +2,50 @@
 /** @jsxFrag $mol_jsx_frag */
 namespace $.$$ {
 	export class $giper_baza_dom_edit extends $.$giper_baza_dom_edit {
-
-		dom_id() {
-			return ""
-		}
-
-		editable() {
-			return this.enabled() ? 'true' : 'false'
-		}
-
+		
+		// dom_id() {
+		// 	return this.pawn()?.head().str ?? ''
+		// }
+		
 		@ $mol_mem
-		setup() {
-			// $mol_dom.document.execCommand( 'defaultParagraphSeparator', false, 'p' )
+		editable( next?: string | null ) {
+			return next ?? ( this.enabled() ? 'true' : 'false' )
 		}
-
+		
 		@ $mol_mem
-		sub() {
-			console.log('render')
-			let nodes = $mol_jsx_attach( $mol_dom_context.document, ()=> this.pawn().dom() ) as ChildNode[]
+		content() {
+			// console.log('render')
+			let nodes = $mol_jsx_attach( $mol_dom_context.document, ()=> this.pawn()?.dom() ?? [] ) as ChildNode[]
 			nodes = this.$.$mol_dom_safe( nodes )
+			this.selection_load()
 			return nodes.length ? nodes : [ <p><br/></p> ]
 		}
-
+		
 		@ $mol_mem
-		selection( next?: readonly( readonly[ string /*self*/, number /*pos*/ ] )[] ) {
-			return this.pawn().selection( this.$.$giper_baza_auth.current().lord(), next )
+		selection( next?: readonly[ from: readonly[ self: string, x: number, y: number ], to: readonly[ self: string, x: number, y: number ] ] ) {
+			return this.pawn().selection( this.$.$giper_baza_auth.current().pass().lord(), next )
 		}
 
-		save() {
+		save( event?: Event ) {
 			
 			const sel = $mol_dom_range.from_selection()
-			const root = this.dom_node()
+			if( !sel ) return
+			
+			const root = this.Content().dom_node()
 			if( !$mol_dom_range.inside( root ).range_contains( sel ) ) return
 
-			let container = sel.container() as Element
-			while( [ 'SPAN', '#text' ].includes( container.nodeName ) ) {
-				container = container.parentElement!
-			}
+			let container = root // sel.container() as Element
+            // while( container.parentNode && container !== root ) {
+            //     const element = container as Element
+            //     if( element.id ) break
+            //     container = container.parentNode as Element
+            // }
 			
-			const dom = this.pawn().land().Pawn( $giper_baza_dom ).Item( container.id )
+			let dom = this.pawn( null! )
+			// if( container.id ) dom = dom.land().Pawn( $giper_baza_dom ).Head( new $giper_baza_link( container.id ) )
 			let nodes = [ ... container.childNodes ]
 			nodes = this.$.$mol_dom_safe( nodes as Element[] )
+			// console.log( event, container, dom, nodes )
 			dom.dom( nodes as Element[] )
 			this.selection_save()
 		}
@@ -59,30 +62,56 @@ namespace $.$$ {
 		selection_save() {
 
 			const sel = $mol_dom_range.from_selection()
-			const root = this.dom_node()
+			if( !sel ) return
+			
+			const root = this.Content().dom_node()
 			if( !$mol_dom_range.inside( root ).range_contains( sel ) ) return
-
-			const anchor = [ sel.anchor.node.parentElement!.id, sel.anchor.pos ] as const
-			const extend = [ sel.extend.node.parentElement!.id, sel.extend.pos ] as const
-			console.log( 'save', anchor, extend )
+			
+			const point_by = ( point: $mol_dom_point )=> {
+				
+				let base = ( point.node.nodeType === point.node.ELEMENT_NODE ? point.node : point.node.parentNode ) as Element
+				let link = null as null | $giper_baza_link
+				
+				while( true ) {
+					link = $giper_baza_link.check( base.id )
+					if( link ) break
+					base = base.parentElement as Element
+				}
+				
+				const range = new $mol_dom_range( $mol_dom_point.head( base ), point )
+				const len = range.native().toString().length
+				// console.log( range.native().toString() )
+				
+				return [ link.str, len, 0 ] as const
+			}
+			
+			const anchor = point_by( sel.anchor )
+			const extend = point_by( sel.extend )
+			// console.log( 'save', anchor, extend )
 			this.selection([ anchor, extend ])
 
 		}
 
 		// @ $mol_mem
 		selection_load() {
+			
 			if( !this.focused() ) return
 			const [ anchor, focus ] = this.selection()
-			console.log( 'load', anchor, focus )
-			const anchorNode = $mol_dom_context.document.getElementById( anchor[0] )?.firstChild
-			const extendNode = $mol_dom_context.document.getElementById( focus[0] )?.firstChild
+			// console.log( 'load', anchor, focus )
+			
+			const anchorNode = $mol_dom_context.document.getElementById( anchor[0] )
+			const extendNode = $mol_dom_context.document.getElementById( focus[0] )
+			
 			if( !anchorNode ) return
 			if( !extendNode ) return
+			
+			const root = this.Content().dom_node()
+			
 			const range = new $mol_dom_range(
-				$mol_dom_point.head( anchorNode ).move_chars( this.dom_node(), anchor[1] ),
-				$mol_dom_point.head( extendNode ).move_chars( this.dom_node(), focus[1] ),
+				$mol_dom_point.head( anchorNode ).move_chars( root, anchor[1] ),
+				$mol_dom_point.head( extendNode ).move_chars( root, focus[1] ),
 			)
-			console.log(anchorNode,range)
+			// console.log(anchorNode,range)
 			range.select()
 		}
 
@@ -94,14 +123,67 @@ namespace $.$$ {
 		// 	} ) )
 		// 	obs.observe( this.Body(), { attributes: true, childList: true, subtree: true, characterData: true } )
 		// }
-
-		toggle( Type: 'strong' | 'em' | 'ins' | 'del' | 'code', event: KeyboardEvent ) {
-			console.log( 'toggle', Type )
+		
+		/** Wraps selecion to given element type. */
+		inline_toggle( Type: 'strong' | 'em' | 'ins' | 'del' | 'code', event: KeyboardEvent ) {
 			
-			$mol_dom_range.from_selection().surround( <Type></Type> )
+			const sel = $mol_dom_range.from_selection()!
+			
+			if( sel.is_empty() ) {
+				
+				let box = sel.container() as Element
+				if( box.nodeType !== box.ELEMENT_NODE ) box = box.parentNode as Element
+				
+				while( box ) {
+					
+					if( box === this.Content().dom_node() ) {
+						sel.expand().surround( <Type/> )
+						break
+					}
+					
+					if( box.localName === Type ) {
+						while( box.firstChild ) box.parentNode!.insertBefore( box.firstChild, box )
+						box.remove()
+					}
+					
+					box = box.parentNode as Element
+				}
+				
+				
+			} else {
+				sel.surround( <Type/> )
+			}
+			
+			this.selection_load()
 			this.save()
+			
 			event.preventDefault()
 		}
-
+		
+		paste( event?: ClipboardEvent ) {
+			
+			const text = event!.clipboardData!.getData( 'text/plain' )
+			
+			try { new URL( text ) }
+			catch { return }
+			
+			const sel = $mol_dom_range.from_selection()!
+			if( sel.is_empty() ) {
+				sel.paste( <a href={text}>{text}</a> )
+			} else {
+				sel.surround( <a href={text} /> )
+			}
+			
+			this.selection_load()
+			this.save()
+			
+			event?.preventDefault()
+			
+		}
+		
+		hover( event: PointerEvent ) {
+			this.editable( event.ctrlKey ? 'false' : null )
+		}
+		
 	}
 }

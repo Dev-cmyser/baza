@@ -121,6 +121,7 @@ namespace $ {
 			this.faces.peer_summ_shift( peer.str, +1 )
 		
 			sands.set( sand.self().str, sand )
+			this._self_all.set( sand.self().str, !sand.dead() )
 			
 			this.faces.peer_time( peer.str, sand.time(), sand.tick() )
 			
@@ -249,7 +250,7 @@ namespace $ {
 			return this._sand.get( head.str )?.get( lord.str )?.get( self.str ) ?? null
 		}
 		
-		_self_all = new $mol_wire_dict< string, $giper_baza_unit_sand | null >()
+		_self_all = new Map< string /*Self*/, boolean /*alive*/ >()
 		
 		/** Generates unique local id base on optional idea number or random. */
 		@ $mol_action
@@ -269,7 +270,7 @@ namespace $ {
 				if( /[æÆ]/.test( idea_link.str ) ) continue
 				if( this._self_all.has( idea_link.str ) ) continue
 				
-				this._self_all.set( idea_link.str, null )
+				this._self_all.set( idea_link.str, false )
 				return idea_link
 				
 			}
