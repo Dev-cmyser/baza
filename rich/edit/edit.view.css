@@ -1,6 +1,6 @@
 [giper_baza_rich_edit] {
 	flex-direction: column;
-	flex-grow: 1;
+	flex: 1;
 	border-radius: var(--mol_gap_round);
 	outline: 1px solid var(--mol_theme_line);
 	background-color: var(--mol_theme_field);
