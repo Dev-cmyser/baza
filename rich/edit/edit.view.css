@@ -94,9 +94,33 @@
 }
 
 [giper_baza_rich_edit_content] h1,
-[giper_baza_rich_edit_content] h2 {
+[giper_baza_rich_edit_content] h2,
+[giper_baza_rich_edit_content] h3,
+[giper_baza_rich_edit_content] h4,
+[giper_baza_rich_edit_content] h5,
+[giper_baza_rich_edit_content] h6,
+[giper_baza_rich_edit_content] h7 {
 	font-size: 1em;
-	font-weight: bolder;
-	margin: 0;
+	font-weight: normal;
+	letter-spacing: 2px;
+	margin: var(--mol_gap_block) 0;
 	padding: var(--mol_gap_text);
+}
+
+[giper_baza_rich_edit_content] h1 { font-size: 2.75rem; line-height: 3rem; }
+[giper_baza_rich_edit_content] h2 { font-size: 2.5rem; line-height: 3rem; }
+[giper_baza_rich_edit_content] h3 { font-size: 2.25rem; line-height: 3rem; }
+[giper_baza_rich_edit_content] h4 { font-size: 2rem; line-height: 3rem; }
+[giper_baza_rich_edit_content] h5 { font-size: 1.75rem; line-height: 3rem; }
+[giper_baza_rich_edit_content] h6 { font-size: 1.5rem; line-height: 3rem; }
+[giper_baza_rich_edit_content] h7 { font-size: 1.25rem; line-height: 1.5rem; }
+
+[giper_baza_rich_edit_content] *+h1,
+[giper_baza_rich_edit_content] *+h2,
+[giper_baza_rich_edit_content] *+h3,
+[giper_baza_rich_edit_content] *+h4,
+[giper_baza_rich_edit_content] *+h5,
+[giper_baza_rich_edit_content] *+h6,
+[giper_baza_rich_edit_content] *+h7 {
+	box-shadow: 0 -1px 0 0 var(--mol_theme_line);
 }
