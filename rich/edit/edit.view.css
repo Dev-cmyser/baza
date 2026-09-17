@@ -2,9 +2,13 @@
 	flex-direction: column;
 	flex: 1;
 	border-radius: var(--mol_gap_round);
-	outline: 1px solid var(--mol_theme_line);
 	background-color: var(--mol_theme_field);
 }
+
+[giper_baza_rich_edit_enabled] {
+	outline: 1px solid var(--mol_theme_line);
+}
+
 [giper_baza_rich_edit]:focus-within {
 	z-index: var(--mol_layer_focus);
 	outline: 1px solid var(--mol_theme_focus);
@@ -19,6 +23,7 @@
 	flex: 1;
 	white-space: pre-wrap;
 	outline: none;
+	padding: var(--mol_gap_block);
 }
 
 [giper_baza_rich_edit_content] a {
@@ -35,6 +40,22 @@
 [giper_baza_rich_edit_content] p {
 	margin: 0;
 	padding: var(--mol_gap_text);
+}
+
+[giper_baza_rich_edit_content] ul {
+	margin: 0;
+	padding: 0 var(--mol_gap_block);
+}
+
+[giper_baza_rich_edit_content] ul > p:before {
+	content: '• ';
+}
+
+[giper_baza_rich_edit_content] blockquote {
+	margin: var(--mol_gap_block);
+	padding: var(--mol_gap_block);
+	background: var(--mol_theme_card);
+	border-radius: var(--mol_gap_round);
 }
 
 [giper_baza_rich_edit_content] img {

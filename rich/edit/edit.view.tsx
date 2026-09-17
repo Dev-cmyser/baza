@@ -13,6 +13,14 @@ namespace $.$$ {
 		}
 		
 		@ $mol_mem
+		sub() {
+			return [
+				... this.enabled() ? [ this.Tools() ] : [],
+				this.Content(),
+			]
+		}
+		
+		@ $mol_mem
 		content() {
 			// console.log('render')
 			let nodes = $mol_jsx_attach( $mol_dom_context.document, ()=> this.pawn()?.dom() ?? [] ) as ChildNode[]
@@ -23,7 +31,7 @@ namespace $.$$ {
 		
 		@ $mol_mem
 		selection( next?: readonly[ from: readonly[ self: string, x: number, y: number ], to: readonly[ self: string, x: number, y: number ] ] ) {
-			return this.pawn().selection( this.$.$giper_baza_auth.current().pass().lord(), next )
+			return this.pawn()?.selection( this.$.$giper_baza_auth.current().pass().lord(), next ) ?? [ [ '', 0, 0 ], [ '', 0, 0 ] ]
 		}
 
 		save( event?: Event ) {
@@ -138,8 +146,76 @@ namespace $.$$ {
 		// 	obs.observe( this.Body(), { attributes: true, childList: true, subtree: true, characterData: true } )
 		// }
 		
+		block_more( Type: string, event: KeyboardEvent ) {
+			
+			const sel = $mol_dom_range.from_selection()!
+			
+			if( sel.is_empty() ) {
+				
+				let box = sel.container() as Element
+				if( box.nodeType !== box.ELEMENT_NODE ) box = box.parentNode as Element
+				
+				while( box ) {
+					
+					if( box === this.Content().dom_node() ) {
+						sel.expand().surround( <Type/> )
+						break
+					}
+					
+					if( box.localName === 'p' ) {
+						$mol_dom_range.around( box ).surround( <Type/> )
+						break
+					}
+					
+					box = box.parentNode as Element
+				}
+				
+				
+			} else {
+				sel.surround( <Type/> )
+			}
+			
+			this.selection_load()
+			this.save()
+			
+			event.preventDefault()
+		}
+		
+		block_less( Type: string, event: KeyboardEvent ) {
+			
+			const sel = $mol_dom_range.from_selection()!
+			
+			if( sel.is_empty() ) {
+				
+				let box = sel.container() as Element
+				if( box.nodeType !== box.ELEMENT_NODE ) box = box.parentNode as Element
+				
+				while( box ) {
+					
+					if( box === this.Content().dom_node() ) return
+					
+					if( box.localName === Type ) {
+						while( box.firstChild ) box.parentNode!.insertBefore( box.firstChild, box )
+						box.remove()
+						break
+					}
+					
+					box = box.parentNode as Element
+				}
+				
+				
+			} else {
+				// TODO: search inside
+			}
+			
+			this.selection_load()
+			this.save()
+			
+			event.preventDefault()
+		}
+		
 		/** Wraps selecion to given element type. */
-		inline_toggle( Type: 'strong' | 'em' | 'ins' | 'del' | 'code', event: KeyboardEvent ) {
+		inline_toggle( Type: string, event: KeyboardEvent ) {
 			
 			const sel = $mol_dom_range.from_selection()!
 			
@@ -158,6 +234,7 @@ namespace $.$$ {
 					if( box.localName === Type ) {
 						while( box.firstChild ) box.parentNode!.insertBefore( box.firstChild, box )
 						box.remove()
+						break
 					}
 					
 					box = box.parentNode as Element
