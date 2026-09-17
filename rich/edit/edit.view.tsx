@@ -146,33 +146,27 @@ namespace $.$$ {
 		// 	obs.observe( this.Body(), { attributes: true, childList: true, subtree: true, characterData: true } )
 		// }
 		
-		block_more( Type: string, event: KeyboardEvent ) {
+		override block_wrap( Type: string, event: KeyboardEvent ) {
 			
 			const sel = $mol_dom_range.from_selection()!
+			if( !sel.is_empty() ) return
 			
-			if( sel.is_empty() ) {
+			let box = sel.container() as Element
+			if( box.nodeType !== box.ELEMENT_NODE ) box = box.parentNode as Element
+			
+			while( box ) {
 				
-				let box = sel.container() as Element
-				if( box.nodeType !== box.ELEMENT_NODE ) box = box.parentNode as Element
-				
-				while( box ) {
-					
-					if( box === this.Content().dom_node() ) {
-						sel.expand().surround( <Type/> )
-						break
-					}
-					
-					if( box.localName === 'p' ) {
-						$mol_dom_range.around( box ).surround( <Type/> )
-						break
-					}
-					
-					box = box.parentNode as Element
+				if( box === this.Content().dom_node() ) {
+					$mol_dom_range.inside( box ).surround( <p/> ).surround( <Type/> )
+					break
 				}
 				
+				if( box.localName === 'p' ) {
+					$mol_dom_range.around( box ).surround( <Type/> )
+					break
+				}
 				
-			} else {
-				sel.surround( <Type/> )
+				box = box.parentNode as Element
 			}
 			
 			this.selection_load()
@@ -181,31 +175,28 @@ namespace $.$$ {
 			event.preventDefault()
 		}
 		
-		block_less( Type: string, event: KeyboardEvent ) {
+		override block_unwrap( event: KeyboardEvent ) {
 			
 			const sel = $mol_dom_range.from_selection()!
+			if( !sel.is_empty() ) return
+				
+			let box = sel.container() as Element
+			if( box.nodeType !== box.ELEMENT_NODE ) box = box.parentNode as Element
 			
-			if( sel.is_empty() ) {
+			while( box ) {
 				
-				let box = sel.container() as Element
-				if( box.nodeType !== box.ELEMENT_NODE ) box = box.parentNode as Element
+				if( box === this.Content().dom_node() ) return
 				
-				while( box ) {
-					
-					if( box === this.Content().dom_node() ) return
-					
-					if( box.localName === Type ) {
-						while( box.firstChild ) box.parentNode!.insertBefore( box.firstChild, box )
-						box.remove()
-						break
-					}
-					
-					box = box.parentNode as Element
+				if( box.localName === 'p' ) {
+					const parent = box.parentNode as Element
+					if( parent === this.Content().dom_node() ) return
+					// $mol_dom_range.around( box ).split() ???
+					while( parent.firstChild ) parent.parentNode!.insertBefore( parent.firstChild!, parent )
+					parent.remove()
+					break
 				}
 				
-				
-			} else {
-				// TODO: search inside
+				box = box.parentNode as Element
 			}
 			
 			this.selection_load()
@@ -215,7 +206,7 @@ namespace $.$$ {
 		}
 		
 		/** Wraps selecion to given element type. */
-		inline_toggle( Type: string, event: KeyboardEvent ) {
+		override inline_toggle( Type: string, event: KeyboardEvent ) {
 			
 			const sel = $mol_dom_range.from_selection()!
 			
@@ -251,7 +242,7 @@ namespace $.$$ {
 			event.preventDefault()
 		}
 		
-		paste( event?: ClipboardEvent ) {
+		override paste( event?: ClipboardEvent ) {
 			
 			const sel = $mol_dom_range.from_selection()!
 			const html = event!.clipboardData!.getData( 'text/html' )
@@ -283,7 +274,7 @@ namespace $.$$ {
 			
 		}
 		
-		hover( event: PointerEvent ) {
+		override hover( event: PointerEvent ) {
 			this.editable( event.ctrlKey ? 'false' : null )
 		}
 		

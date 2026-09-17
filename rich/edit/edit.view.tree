@@ -9,15 +9,20 @@ $giper_baza_rich_edit $mol_view
 		<= selection_sync null
 	plugins /
 		<= Hotkey $mol_hotkey2 action *
-			ctrl_B? <=> inline_toggle*strong? null - \Brutal
-			ctrl_I? <=> inline_toggle*em? null - \Ironic
-			ctrl_U? <=> inline_toggle*ins? null - \Update
-			ctrl_O? <=> inline_toggle*del? null - \Omit
-			ctrl_M? <=> inline_toggle*code? null - \Monospace
-			ctrl_Q? <=> block_more*blockquote? null - \Quote
-			ctrl_shift_Q? <=> block_less*blockquote? null - \Quote
-			tab? <=> block_more*ul? null - \Indent
-			shift_tab? <=> block_less*ul? null - \Indent
+			alt_S? <=> inline_toggle*strong? null
+			alt_E? <=> inline_toggle*em? null
+			alt_I? <=> inline_toggle*ins? null
+			alt_R? <=> inline_toggle*del? null
+			alt_C? <=> inline_toggle*code? null
+			-
+			alt_T? <=> block_wrap*section? null
+			alt_Q? <=> block_wrap*blockquote? null
+			alt_U? <=> block_wrap*ul? null
+			alt_O? <=> block_wrap*ol? null
+			alt_P? <=> block_wrap*pre? null
+			-
+			tab? <=> block_rewrap? null
+			shift_tab? <=> block_unwrap? null
 	sub /
 		<= Tools $mol_float sub /
 			<= Inline_format_menu $mol_pick
@@ -27,84 +32,65 @@ $giper_baza_rich_edit $mol_view
 				bubble_content /
 					<= Strong_button $mol_button_minor
 						title @ \Strong
-						hint \Ctrl+B
+						hint \Alt+S
 						enabled? <=> selected? false
 						click? <=> inline_toggle*strong?
 					<= Em_button $mol_button_minor
 						title @ \Emphasis
-						hint \Ctrl+I
+						hint \Alt+E
 						enabled? <=> selected? false
 						click? <=> inline_toggle*em?
 					<= Ins_button $mol_button_minor
 						title @ \Insertion
-						hint \Ctrl+U
+						hint \Alt+I
 						enabled? <=> selected? false
 						click? <=> inline_toggle*ins?
 					<= Del_button $mol_button_minor
 						title @ \Deletion
-						hint \Ctrl+O
+						hint \Alt+R
 						enabled? <=> selected? false
 						click? <=> inline_toggle*del?
 					<= Code_button $mol_button_minor
 						title @ \Code
-						hint \Ctrl+M
+						hint \Alt+C
 						enabled? <=> selected? false
 						click? <=> inline_toggle*code?
-			<= Heading_menu $mol_pick
-				hint @ \Heading
-				trigger_content /
-					<= Heading_menu_icon $mol_icon_format_size
-				bubble_content /
-					<= Header_inc_button $mol_button_minor
-						title @ \Increase
-						hint \Ctrl+H
-						enabled false
-					<= Header_dec_button $mol_button_minor
-						title @ \Decrease
-						hint \Ctrl+Shift+H
-						enabled false
-			<= Indent_menu $mol_pick
-				hint @ \Indentation
-				trigger_content /
-					<= Indent_menu_icon $mol_icon_format_list_bulleted
-				bubble_content /
-					<= Indent_inc_button $mol_button_minor
-						title @ \Increase
-						hint \Tab
-						enabled? <=> selected? false
-						click? <=> block_more*ul?
-					<= Indent_dec_button $mol_button_minor
-						title @ \Decrease
-						hint \Shift+Tab
-						enabled? <=> selected? false
-						click? <=> block_less*ul?
-					<= Bullet_button $mol_button_minor
-						title @ \Bullets
-						hint \Ctrl+8
-						enabled false
-					<= Number_button $mol_button_minor
-						title @ \Numbers
-						hint \Ctrl+1
-						enabled false
-			<= Quote_menu $mol_pick
-				hint @ \Quotation
-				trigger_content /
-					<= Quote_menu_icon $mol_icon_comment_quote_outline
-				bubble_content /
-					<= Quote_inc_button $mol_button_minor
-						title @ \Increase
-						hint \Ctrl+Q
-						enabled? <=> selected? false
-						click? <=> block_more*blockquote?
-					<= Quote_dec_button $mol_button_minor
-						title @ \Decrease
-						hint \Ctrl+Shift+Q
-						enabled? <=> selected? false
-						click? <=> block_less*blockquote?
-					<= Quote_code_button $mol_button_minor
-						title @ \Code
-						hint \Ctrl+3
-						enabled false
+			<= Section_button $mol_button_minor
+				hint @ \Titled Section (Alt+T)
+				enabled? <=> selected? false
+				click? <=> block_wrap*section?
+				sub /
+					<= Section_icon $mol_icon_format_size
+			<= List_bullet_button $mol_button_minor
+				hint @ \Unordered List (Alt+U)
+				enabled? <=> selected? false
+				click? <=> block_wrap*ul?
+				sub /
+					<= List_bullet_icon $mol_icon_order_bool_ascending
+			<= List_number_button $mol_button_minor
+				hint @ \Ordered List (Alt+O)
+				enabled? <=> selected? false
+				click? <=> block_wrap*ol?
+				sub /
+					<= List_number_icon $mol_icon_order_numeric_ascending
+			<= Quote_button $mol_button_minor
+				hint @ \Quotation (Alt+Q)
+				enabled? <=> selected? false
+				click? <=> block_wrap*blockquote?
+				sub /
+					<= Quote_icon $mol_icon_comment_quote_outline
+			<= Preformat_button $mol_button_minor
+				hint @ \Preformatted Code (Alt+P)
+				enabled? <=> selected? false
+				click? <=> block_wrap*pre?
+				sub /
+					<= Preformat_icon $mol_icon_xml
+			<= Unwrap_button $mol_button_minor
+				hint @ \Unwrap Block (Shift+Tab)
+				enabled? <=> selected? false
+				click? <=> block_unwrap?
+				sub /
+					<= Decrease_icon $mol_icon_arrow_collapse_left
 		<= Content $mol_view
 			attr *
 				contenteditable <= editable? \true
