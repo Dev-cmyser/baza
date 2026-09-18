@@ -1,6 +1,7 @@
 $giper_baza_app_stat_chart $mol_chart
 	graphs /
 		<= Zones $mol_plot_fill
+			Sample null
 			series_x <= zones_x /
 			series_y <= zones_y /
 				0
