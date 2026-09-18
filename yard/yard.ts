@@ -82,13 +82,11 @@ namespace $ {
 				setTimeout( ()=> this.reconnects( null ), 1000 )
 			}
 			
-			Object.assign( socket, {
-				destructor: ()=> {
-					socket.onclose = ()=> {}
-					clearInterval( interval )
-					socket.close()
-				}
-			} )
+			port.destructor = ()=> {
+				socket.onclose = ()=> {}
+				clearInterval( interval )
+				socket.close()
+			}
 			
 			return new Promise< $mol_rest_port >( ( done, fail )=> {
 				
