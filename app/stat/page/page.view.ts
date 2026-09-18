@@ -99,16 +99,5 @@ namespace $.$$ {
 			return this.stat()?.Errors()?.series() ?? []
 		}
 		
-		@ $mol_mem
-		times() {
-			const times = [] as string[]
-			for( let i = 1; i < 59; ++i ) times.push( `${i} secs ago` )
-			for( let i = 1; i < 59; ++i ) times.push( `${i} mins ago` )
-			for( let i = 1; i < 23; ++i ) times.push( `${i} hours ago` )
-			for( let i = 1; i < 31; ++i ) times.push( `${i} days ago` )
-			for( let i = 1; i < 12; ++i ) times.push( `${i} months ago` )
-			return times
-		}
-		
 	}
 }
