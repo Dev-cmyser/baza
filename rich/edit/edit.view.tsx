@@ -26,7 +26,7 @@ namespace $.$$ {
 			let nodes = $mol_jsx_attach( $mol_dom_context.document, ()=> this.pawn()?.dom() ?? [] ) as ChildNode[]
 			nodes = this.$.$mol_dom_safe( nodes )
 			this.selection_load()
-			return nodes.length ? nodes : [ <p><br/></p> ]
+			return nodes.length ? nodes : [ <section><p><br/></p></section> ]
 		}
 		
 		@ $mol_mem
