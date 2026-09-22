@@ -68,10 +68,11 @@ namespace $ {
 				const res = await Unit.select( range )
 				
 				const units = res.map( bin => $giper_baza_unit_base.narrow( bin[0] ) )
+				const lord = this.$.$giper_baza_auth.current().pass().lord().str
 				for( const unit of units ) {
 					
 					this.units_persisted.add( unit )
-					// $giper_baza_unit_trusted_grant( unit )
+					if( unit.lord().str === lord ) $giper_baza_unit_trusted_grant( unit )
 					
 				}
 				
