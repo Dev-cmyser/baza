@@ -245,10 +245,9 @@ namespace $ {
 			for( const [ land, part ] of parts ) {
 				if( land !== this.land().str ) return $mol_fail( new Error( 'Unexpected land', { cause: { expected: this.land().str, existen: land } } ) )
 				
-				const lord = this.$.$giper_baza_auth.current().pass().lord().str
 				for( const unit of part.units ) {
 					this.units_persisted.add( unit )
-					if( unit.lord().str === lord ) $giper_baza_unit_trusted_grant( unit )
+					// $giper_baza_unit_trusted_grant( unit )
 				}
 				
 				return part.units
