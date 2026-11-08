@@ -95,11 +95,14 @@ namespace $ {
 
 			socket.onclose = ()=> {
 				clearInterval( interval )
-				setTimeout( ()=> this.reconnects( null ), 1000 )
+				interval = setTimeout( ()=> this.reconnects( null ), 1000 )
 			}
 			
 			port.destructor = ()=> {
-				socket.onclose = ()=> {}
+				socket.onopen = null
+				socket.onerror = null
+				socket.onclose = null
+				socket.onmessage = null
 				clearInterval( interval )
 				socket.close()
 			}

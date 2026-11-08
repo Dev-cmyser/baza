@@ -15,18 +15,29 @@ namespace $ {
 	
 	$mol_test({
 		
-		'Reconnect closes master socket that has not opened yet'( $ ) {
+		'Switching master closes and detaches socket that has not opened yet'( $ ) {
 			
 			const sockets = [] as WebSocket[]
 			
 			class WebSocket {
+				onopen: unknown = null
+				onerror: unknown = null
+				onclose: unknown = null
+				onmessage: unknown = null
 				closed = false
 				constructor() { sockets.push( this ) }
 				close() { this.closed = true }
 			}
 			
-			const yard = $giper_baza_yard.make({
+			class Yard extends $giper_baza_yard {
+				static override masters() {
+					return [ 'http://a/', 'http://b/' ]
+				}
+			}
+			
+			const yard = Yard.make({
 				$: $.$mol_ambient({
+					$giper_baza_yard: Yard,
 					$mol_dom_context: Object.setPrototypeOf( { WebSocket }, $.$mol_dom_context ),
 				}),
 			})
@@ -34,10 +45,16 @@ namespace $ {
 			const master = $mol_wire_async( yard ).master
 			
 			master()
-			yard.reconnects( null )
+			yard.master_cursor( 1 )
 			master()
 			
-			$mol_assert_equal( sockets.map( socket => socket.closed ), [ true, false ] )
+			const [ prev ] = sockets
+			
+			$mol_assert_equal( sockets.length, 2 )
+			$mol_assert_equal(
+				[ prev.closed, prev.onopen, prev.onerror, prev.onclose, prev.onmessage ],
+				[ true, null, null, null, null ],
+			)
 			
 		},
 		
